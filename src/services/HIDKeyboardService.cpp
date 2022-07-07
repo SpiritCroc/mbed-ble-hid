@@ -138,7 +138,7 @@ std::array<KeyCode_t, 182> s_keyLUT{
     ASCII_7D,      /* } */
     ASCII_7E,      /* ~ */
     ASCII_7F,      /* DEL */
- 
+
     KEYCODE_F1,
     KEYCODE_F2,
     KEYCODE_F3,
@@ -205,7 +205,7 @@ KeySym_t::KeySym_t(KeyCode_t _keycode)
   , modifiers(0)
 {
   _keycode &= KEYCODE_MASK;
-  
+
   if (_keycode > ALTGR_MASK) {
     _keycode -= ALTGR_MASK;
     modifiers |= Modifier::KEY_ALT;
@@ -227,6 +227,7 @@ struct {
   uint8_t modifiers;
   uint8_t reserved;
   uint8_t key_codes[6];
+  uint8_t media_key;
 } hid_input_report;
 
 // Input Report Reference
@@ -269,6 +270,7 @@ static uint8_t hid_report_map[] =
   USAGE_PAGE(1),      0x01,       // Usage Page (Generic Desktop)
   USAGE(1),           0x06,       // Usage (Keyboard)
   COLLECTION(1),      0x01,       // Collection (Application)
+    //REPORT_ID(1),       0x01,       // Report ID (1)
     // Key codes (Modifiers)
     USAGE_PAGE(1),      0x07,       // Usage Page (Key Codes)
     USAGE_MINIMUM(1),   0xE0,       // Usage Minimum (224)
@@ -302,27 +304,53 @@ static uint8_t hid_report_map[] =
     REPORT_COUNT(1),    0x06,       // Report Count (6)
     REPORT_SIZE(1),     0x08,       // Report Size (8)
     INPUT(1),           0x00,       // Input (Data, Array)
+
+    // Media keys | https://devzone.nordicsemi.com/f/nordic-q-a/25351/hid-consumer-control-settings
+    USAGE_PAGE(1),    0x0c,       // Usage page (Consumer)
+    USAGE(1),         0x01,       // Usage (Consumer Control)
+    LOGICAL_MINIMUM(1), 0x00,       // Logical Minimum (0)
+    LOGICAL_MAXIMUM(1), 0x01,       // Logical Maximum (1)
+    REPORT_SIZE(1),     0x01,       // Report Size (1)
+    REPORT_COUNT(1),    0x01,       // Report Count (1)
+    // Key codes - keep synced with Nano33BleHID.h's MEDIA_KEY_* constants
+    0x09, 0xCD,                     //     Usage (Play/Pause)
+    0x81, 0x02,                     //     Input (Data,Value,Relative,Bit Field)
+    0x0A, 0x83, 0x01,               //     Usage (AL Consumer Control Configuration)
+    0x81, 0x02,                     //     Input (Data,Value,Relative,Bit Field)
+    0x09, 0xB5,                     //     Usage (Scan Next Track)
+    0x81, 0x02,                     //     Input (Data,Value,Relative,Bit Field)
+    0x09, 0xB6,                     //     Usage (Scan Previous Track)
+    0x81, 0x02,                     //     Input (Data,Value,Relative,Bit Field)
+
+    0x09, 0xEA,                     //     Usage (Volume Down)
+    0x81, 0x02,                     //     Input (Data,Value,Relative,Bit Field)
+    0x09, 0xE9,                     //     Usage (Volume Up)
+    0x81, 0x02,                     //     Input (Data,Value,Relative,Bit Field)
+    0x0A, 0x25, 0x02,               //     Usage (AC Forward)
+    0x81, 0x02,                     //     Input (Data,Value,Relative,Bit Field)
+    0x0A, 0x24, 0x02,               //     Usage (AC Back)
+    0x81, 0x02,                     //     Input (Data,Value,Relative,Bit Field)
   END_COLLECTION(0),
 };
 
-} // namespace "" 
+} // namespace ""
 
 /* -------------------------------------------------------------------------- */
 
-HIDKeyboardService::HIDKeyboardService(BLE &_ble) : 
+HIDKeyboardService::HIDKeyboardService(BLE &_ble) :
   HIDService(_ble,
              HID_KEYBOARD,
-             
+
              // report map
-             hid_report_map, 
+             hid_report_map,
              sizeof(hid_report_map) / sizeof(*hid_report_map),
-             
+
              // input report
              (uint8_t*)&hid_input_report,
              sizeof(hid_input_report),
              input_report_ref_descs,
              sizeof(input_report_ref_descs) / sizeof(*input_report_ref_descs),
-             
+
              // output report
              (uint8_t*)&hid_output_report,
              sizeof(hid_output_report),
@@ -340,12 +368,16 @@ void HIDKeyboardService::sendCharacter(unsigned char c) {
   keydown(keysym);
   SendReport();
   keyup();
-  SendReport(); 
+  SendReport();
 }
 
 void HIDKeyboardService::keydown(KeySym_t keysym) {
   hid_input_report.modifiers    = keysym.modifiers;
   hid_input_report.key_codes[0] = keysym.usage;
+}
+
+void HIDKeyboardService::media_keydown(int media_key) {
+  hid_input_report.media_key = media_key;
 }
 
 void HIDKeyboardService::keyup() {

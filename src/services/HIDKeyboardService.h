@@ -89,6 +89,9 @@ class HIDKeyboardService : public HIDService {
   /* Register a down report for the specific keysym. */
   void keydown(KeySym_t keysym);
 
+  /* Register a down report for the specific media key. */
+  void media_keydown(int media_key);
+
   /* Register a release report. */
   void keyup();
 };
