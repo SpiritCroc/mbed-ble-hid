@@ -313,9 +313,9 @@ static uint8_t hid_report_map[] =
     REPORT_SIZE(1),     0x01,       // Report Size (1)
     REPORT_COUNT(1),    0x01,       // Report Count (1)
     // Key codes - keep synced with Nano33BleHID.h's MEDIA_KEY_* constants
-    0x09, 0xCD,                     //     Usage (Play/Pause)
-    0x81, 0x02,                     //     Input (Data,Value,Relative,Bit Field)
     0x0A, 0x83, 0x01,               //     Usage (AL Consumer Control Configuration)
+    0x81, 0x02,                     //     Input (Data,Value,Relative,Bit Field)
+    0x09, 0xCD,                     //     Usage (Play/Pause)
     0x81, 0x02,                     //     Input (Data,Value,Relative,Bit Field)
     0x09, 0xB5,                     //     Usage (Scan Next Track)
     0x81, 0x02,                     //     Input (Data,Value,Relative,Bit Field)
